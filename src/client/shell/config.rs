@@ -86,6 +86,9 @@ impl ClientShellState {
                 if !self.sidebar_width_manual {
                     self.sidebar_width = self.config.sidebar_width;
                 }
+                if !self.sidebar_section_split_manual {
+                    self.sidebar_section_split = self.config.sidebar_section_split.clamp(0.1, 0.9);
+                }
                 if self.agent_panel_sort_manual {
                     self.config.agent_panel_sort = agent_panel_sort;
                 }
@@ -114,6 +117,7 @@ impl ClientShellConfig {
         let theme_runtime = crate::app::client_theme_runtime_from_config(config);
         Self {
             sidebar_width: config.ui.sidebar_width,
+            sidebar_section_split: config.ui.sidebar_section_split,
             sidebar_min_width: config.ui.sidebar_min_width,
             sidebar_max_width: config.ui.sidebar_max_width,
             sidebar_start_collapsed: config.ui.sidebar_start_collapsed,
@@ -342,6 +346,7 @@ impl ClientShellConfig {
                 let ui = &config.ui;
                 diagnostics.extend(ui.sound.diagnostics());
                 self.sidebar_width = ui.sidebar_width;
+                self.sidebar_section_split = ui.sidebar_section_split;
                 self.sidebar_min_width = ui.sidebar_min_width;
                 self.sidebar_max_width = ui.sidebar_max_width;
                 self.sidebar_collapsed_mode = ui.sidebar_collapsed_mode;

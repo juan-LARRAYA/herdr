@@ -14,6 +14,7 @@ pub(crate) enum ClientShellKeybindingSource {
 
 pub(crate) struct ClientShellConfig {
     pub(super) sidebar_width: u16,
+    pub(super) sidebar_section_split: f32,
     pub(super) sidebar_min_width: u16,
     pub(super) sidebar_max_width: u16,
     pub(super) sidebar_start_collapsed: bool,
@@ -1014,8 +1015,8 @@ impl ClientShellState {
         let sidebar_section_split = preferences
             .sidebar_section_split
             .filter(|split| split.is_finite())
-            .map(|split| split.clamp(0.1, 0.9))
-            .unwrap_or(0.5);
+            .unwrap_or(config.sidebar_section_split)
+            .clamp(0.1, 0.9);
         if let Some(sort) = preferences.agent_panel_sort {
             config.agent_panel_sort = sort;
         }
