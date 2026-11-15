@@ -1016,8 +1016,12 @@ impl ClientShellState {
         let sidebar_section_split = preferences
             .sidebar_section_split
             .filter(|split| split.is_finite())
-            .unwrap_or(config.sidebar_section_split)
-            .clamp(0.1, 0.9);
+            .unwrap_or(config.sidebar_section_split);
+        let sidebar_section_split = if sidebar_section_split <= 0.0 {
+            0.0
+        } else {
+            sidebar_section_split.clamp(0.1, 0.9)
+        };
         if let Some(sort) = preferences.agent_panel_sort {
             config.agent_panel_sort = sort;
         }

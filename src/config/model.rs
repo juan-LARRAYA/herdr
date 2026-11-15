@@ -946,7 +946,7 @@ pub struct UiConfig {
     pub sidebar_start_collapsed: bool,
     /// Collapsed sidebar presentation. Default: compact.
     pub sidebar_collapsed_mode: SidebarCollapsedModeConfig,
-    /// Initial share of the sidebar height given to the Spaces section (0.1-0.9).
+    /// Initial share of the sidebar height given to the Spaces section (0.1-0.9); 0 hides the Spaces list.
     pub sidebar_section_split: f32,
     /// Terminal width at or below which Herdr uses the mobile single-column layout. Default: 64.
     pub mobile_width_threshold: u16,

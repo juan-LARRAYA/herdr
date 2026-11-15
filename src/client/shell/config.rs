@@ -87,7 +87,8 @@ impl ClientShellState {
                     self.sidebar_width = self.config.sidebar_width;
                 }
                 if !self.sidebar_section_split_manual {
-                    self.sidebar_section_split = self.config.sidebar_section_split.clamp(0.1, 0.9);
+                    let split = self.config.sidebar_section_split;
+                    self.sidebar_section_split = if split <= 0.0 { 0.0 } else { split.clamp(0.1, 0.9) };
                 }
                 if self.agent_panel_sort_manual {
                     self.config.agent_panel_sort = agent_panel_sort;

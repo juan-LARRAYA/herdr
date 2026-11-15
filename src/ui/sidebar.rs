@@ -31,6 +31,10 @@ fn sidebar_section_heights(total_height: u16, split_ratio: f32) -> (u16, u16) {
     if total_height == 0 {
         return (0, 0);
     }
+    if split_ratio <= 0.0 {
+        // Spaces hidden: keep only its one-row footer, give the rest to Agents.
+        return (1, total_height.saturating_sub(1));
+    }
     if total_height < 6 {
         let workspace_height = total_height.div_ceil(2);
         return (
@@ -67,7 +71,7 @@ pub(crate) fn expanded_sidebar_sections(area: Rect, split_ratio: f32) -> (Rect, 
 
 pub(crate) fn sidebar_section_divider_rect(area: Rect, split_ratio: f32) -> Rect {
     let content = Rect::new(area.x, area.y, area.width.saturating_sub(1), area.height);
-    if content.width == 0 || content.height < 6 {
+    if split_ratio <= 0.0 || content.width == 0 || content.height < 6 {
         return Rect::default();
     }
 
