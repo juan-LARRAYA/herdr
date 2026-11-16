@@ -108,6 +108,26 @@ pub(super) fn render_agent_panel_header(
     if area.height < 2 {
         return false;
     }
+    if config.sidebar_section_split <= 0.0 {
+        // Minimal chrome: two action buttons instead of the "agents / grouped" header.
+        let tidy = "✦ ordenar";
+        let clear = "✕ limpiar";
+        let tidy_w = display_width(tidy).min(area.width as usize) as u16;
+        let clear_x = area.x + 1 + tidy_w + 2;
+        let clear_w = display_width(clear)
+            .min(area.right().saturating_sub(clear_x) as usize) as u16;
+        let style = Style::default()
+            .fg(config.palette.overlay1)
+            .add_modifier(Modifier::BOLD);
+        put_text(buffer, area.x + 1, area.y + 1, tidy_w, tidy, style);
+        put_text(buffer, clear_x, area.y + 1, clear_w, clear, style);
+        hits.agent_sort_toggle = Rect::default();
+        if config.mouse_capture {
+            hits.agent_tidy_button = Rect::new(area.x + 1, area.y + 1, tidy_w, 1);
+            hits.agent_clear_button = Rect::new(clear_x, area.y + 1, clear_w, 1);
+        }
+        return true;
+    }
     put_text(
         buffer,
         area.x,

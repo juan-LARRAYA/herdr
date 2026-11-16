@@ -2022,6 +2022,25 @@ impl ClientShellState {
                     }
                     return;
                 }
+                for (rect, tag) in [
+                    (self.hits.agent_tidy_button, "sidebar:tidy"),
+                    (self.hits.agent_clear_button, "sidebar:clear"),
+                ] {
+                    if super::contains(rect, point) {
+                        if let Some(cmd) = self
+                            .config
+                            .keybinds
+                            .keybinds
+                            .custom_commands
+                            .iter()
+                            .find(|c| c.description.as_deref() == Some(tag))
+                            .cloned()
+                        {
+                            self.record_binding(crate::input::KeybindMatch::Command(cmd), outcome);
+                        }
+                        return;
+                    }
+                }
                 if super::contains(self.hits.agent_sort_toggle, point) {
                     let sort = match self.config.agent_panel_sort {
                         crate::config::AgentPanelSortConfig::Spaces => {
