@@ -17,6 +17,86 @@ pub(super) struct AgentRow {
     pub(super) rows: Vec<Vec<crate::ui::ResolvedToken>>,
 }
 
+const MAX_TITLE_LINES: usize = 3;
+
+fn wrap_text_lines(text: &str, width: usize, max_lines: usize) -> Vec<String> {
+    let width = width.max(1);
+    let mut lines: Vec<String> = Vec::new();
+    let mut current = String::new();
+    let mut current_w = 0usize;
+    for word in text.split_whitespace() {
+        let ww = display_width(word);
+        let sep = usize::from(current_w > 0);
+        if current_w + sep + ww <= width {
+            if sep == 1 {
+                current.push(' ');
+            }
+            current.push_str(word);
+            current_w += sep + ww;
+            continue;
+        }
+        if current_w > 0 {
+            lines.push(std::mem::take(&mut current));
+            current_w = 0;
+        }
+        for ch in word.chars() {
+            let cw = unicode_width::UnicodeWidthChar::width(ch).unwrap_or(0);
+            if current_w + cw > width {
+                lines.push(std::mem::take(&mut current));
+                current_w = 0;
+            }
+            current.push(ch);
+            current_w += cw;
+        }
+    }
+    if !current.is_empty() || lines.is_empty() {
+        lines.push(current);
+    }
+    if lines.len() > max_lines {
+        let rest = lines.split_off(max_lines).join(" ");
+        if let Some(last) = lines.last_mut() {
+            last.push(' ');
+            last.push_str(&rest);
+        }
+    }
+    lines
+}
+
+/// Parte en varias filas las filas de un solo token de texto (el titulo de la conversacion).
+pub(super) fn wrap_agent_rows(
+    rows: &[Vec<crate::ui::ResolvedToken>],
+    width: usize,
+) -> Vec<Vec<crate::ui::ResolvedToken>> {
+    use crate::ui::ResolvedTokenKind as K;
+    let text_width = width.saturating_sub(3);
+    let mut out = Vec::new();
+    for (index, row) in rows.iter().enumerate() {
+        if index > 0 && row.len() == 1 {
+            let text = match &row[0].kind {
+                K::TerminalTitle(t) | K::Pane(t) | K::Agent(t) | K::Custom(t) => Some(t.clone()),
+                _ => None,
+            };
+            if let Some(text) = text {
+                if display_width(&text) > text_width {
+                    for line in wrap_text_lines(&text, text_width, MAX_TITLE_LINES) {
+                        let mut tok = row[0].clone();
+                        tok.kind = match &row[0].kind {
+                            K::TerminalTitle(_) => K::TerminalTitle(line),
+                            K::Pane(_) => K::Pane(line),
+                            K::Agent(_) => K::Agent(line),
+                            _ => K::Custom(line),
+                        };
+                        out.push(vec![tok]);
+                    }
+                    continue;
+                }
+            }
+        }
+        out.push(row.clone());
+    }
+    out
+}
+
 pub(super) fn ordered_agent_pane_ids(
     snapshot: &ClientShellSnapshot,
     sort: crate::config::AgentPanelSortConfig,
@@ -79,7 +159,7 @@ pub(super) fn render_agent_panel(
         config,
         agent_scroll,
         hits,
-        |row| row.rows.len(),
+        |row, width| wrap_agent_rows(&row.rows, width).len(),
         |buffer, rect, row, hits| {
             hits.agents.push((rect, row.pane_id.clone()));
             render_agent_row(buffer, rect, row, config);
@@ -179,7 +259,7 @@ pub(super) fn render_agent_list<T>(
     config: &ClientShellConfig,
     agent_scroll: &mut usize,
     hits: &mut ShellHitMap,
-    row_lines: impl Fn(&T) -> usize,
+    row_lines: impl Fn(&T, usize) -> usize,
     mut render_row: impl FnMut(&mut Buffer, Rect, &T, &mut ShellHitMap),
 ) {
     let body = Rect::new(
@@ -206,9 +286,10 @@ pub(super) fn render_agent_list<T>(
         return;
     }
 
+    let content_width = body.width.saturating_sub(u16::from(body.width > 1));
     let row_heights = rows
         .iter()
-        .map(|row| row_lines(row).max(1).min(u16::MAX as usize) as u16)
+        .map(|row| row_lines(row, content_width as usize).max(1).min(u16::MAX as usize) as u16)
         .collect::<Vec<_>>();
     let gaps = rows
         .iter()
@@ -229,7 +310,6 @@ pub(super) fn render_agent_list<T>(
         .max_offset_from_bottom
         .saturating_sub(metrics.offset_from_bottom);
     let show_scrollbar = metrics.max_offset_from_bottom > 0 && body.width > 1;
-    let content_width = body.width.saturating_sub(u16::from(show_scrollbar));
     let mut y = body.y;
     for (index, row) in rows.iter().enumerate().skip(*agent_scroll) {
         let height = row_heights[index].min(body.height);
@@ -373,6 +453,7 @@ pub(super) fn render_agent_row(
     } else {
         row.rows.clone()
     };
+    let rows = wrap_agent_rows(&rows, rect.width as usize);
     for (index, tokens) in rows.iter().take(rect.height as usize).enumerate() {
         let indent = if index == 0 { 1 } else { 3 };
         let mut spans = vec![ratatui::text::Span::raw(" ".repeat(indent))];
